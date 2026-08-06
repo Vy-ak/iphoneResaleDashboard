@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "crisp_dm4.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "crisp_dm4.py"
+    }
+  ]
+}

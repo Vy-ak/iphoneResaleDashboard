@@ -6,7 +6,6 @@ import vizro.models as vm
 import vizro.plotly.express as px
 from vizro import Vizro
 from vizro.models.types import capture
-import webbrowser
 
 
 # DESIGN TOKENS — Fintech Terminal (Bloomberg/TradingView-inspired)
@@ -212,23 +211,26 @@ with open("assets/custom_dashboard_style.css", "w", encoding="utf-8") as f:
     f.write(_css)
 
 
-# ── LOAD DATA ────────────────────────────────────────────────────────────────
-df = pd.read_csv("data/iphone_resale_dashboard_ready.csv")
+# ── FIX PATH UNTUK VERCEL SERVERLESS ──
+# Dapatkan direktori absolut dari file ini agar Vercel tidak kebingungan mencari folder 'data'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "data", "iphone_resale_dashboard_ready.csv")
+
+# LOAD DATA
+df = pd.read_csv(DATA_PATH)
 
 # PERBAIKAN MAP: pastikan kolom us_state berisi kode 2 huruf yang valid
-# Ekstrak kode negara bagian dari kolom location jika us_state kosong/tidak ada
 if "us_state" not in df.columns:
     # Coba ekstrak dari kolom location (format: "City, ST, Country")
     df["us_state"] = df["location"].str.extract(r",\s*([A-Z]{2})\s*(?:,|$)")
 
-# Bersihkan: uppercase, strip, hanya ambil yang 2 huruf alfabet
 df["us_state"] = (
     df["us_state"]
     .astype(str)
     .str.upper()
     .str.strip()
 )
-# Hapus nilai yang bukan kode negara bagian valid (2 huruf A-Z)
+
 VALID_STATES = {
     "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
     "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
@@ -237,8 +239,6 @@ VALID_STATES = {
 }
 df["us_state"] = df["us_state"].where(df["us_state"].isin(VALID_STATES), other=np.nan)
 
-# Kolom 'location' tetap dipakai untuk filter dropdown (bisa berisi nama state panjang atau kode)
-# Pastikan kolom location ada — jika tidak, gunakan us_state
 if "location" not in df.columns:
     df["location"] = df["us_state"]
 
@@ -338,7 +338,6 @@ def pilar2(data_frame):
         labels={"model_family": "Model iPhone", "price": "Rentang Harga Listing (USD)", "iphone_type": "Tipe iPhone"}
     )
 
-    # Override tiap trace satu per satu — hanya median dan tertinggi
     for trace in fig.data:
         trace.hovertemplate = "<b>%{x}</b><br>Median: $%{median:,.0f}<br>Tertinggi: $%{upperfence:,.0f}<extra></extra>"
         trace.hoveron = "boxes"
@@ -371,17 +370,16 @@ def pilar3(data_frame):
 
 @capture('graph')
 def pilar4(data_frame):
-    # ── PERBAIKAN: gunakan us_state (kode 2 huruf) untuk choropleth, bukan location ──
     state_market = (
         data_frame
-        .dropna(subset=["us_state"])          # buang baris tanpa kode state valid
+        .dropna(subset=["us_state"])
         .groupby("us_state")
         .size()
         .reset_index(name="Total Listing")
     )
     fig = px.choropleth(
         state_market,
-        locations="us_state",                 # kolom kode 2 huruf
+        locations="us_state",
         locationmode="USA-states",
         color="Total Listing",
         scope="usa",
@@ -449,7 +447,7 @@ dashboard = vm.Dashboard(
 vizro_app = Vizro()
 vizro_app.build(dashboard)
 
-server = vizro_app.dash.server
+app = vizro_app.dash.server
 
 if __name__ == "__main__":
     vizro_app.run()
