@@ -7,8 +7,7 @@ import vizro.plotly.express as px
 from vizro import Vizro
 from vizro.models.types import capture
 
-
-# DESIGN TOKENS — Fintech Terminal (Bloomberg/TradingView-inspired)
+# DESIGN TOKENS — Fintech Terminal
 BG_BASE       = "#0a0e14"
 BG_SURFACE    = "#11161f"
 BG_SURFACE_2  = "#161c28"
@@ -39,9 +38,12 @@ KATEGORIKAL_PALETTE = [
     "#c084fc", "#f472b6", "#22d3ee", "#facc15",
 ]
 
+# ── INJEKTOR CSS OTOMATIS (Bisa berjalan di VPS) ──
+# Dapatkan direktori tempat file python ini berada
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 
-# AUTOMATIC CSS INJECTOR
-os.makedirs("assets", exist_ok=True)
+os.makedirs(ASSETS_DIR, exist_ok=True)
 _css = f"""
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -207,21 +209,18 @@ div[class*='Header'] h1, header h1, div[class*='NavBar'] *[class*='title'] {{
 ::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 4px; }}
 ::-webkit-scrollbar-thumb:hover {{ background: {ACCENT_BLUE}; }}
 """
-with open("assets/custom_dashboard_style.css", "w", encoding="utf-8") as f:
+# Tulis file CSS ke folder assets
+css_path = os.path.join(ASSETS_DIR, "custom_dashboard_style.css")
+with open(css_path, "w", encoding="utf-8") as f:
     f.write(_css)
 
 
-# ── FIX PATH UNTUK VERCEL SERVERLESS ──
-# Dapatkan direktori absolut dari file ini agar Vercel tidak kebingungan mencari folder 'data'
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# ── PEMBACAAN DATA ────────────────────────────────────────────────────────────
 DATA_PATH = os.path.join(BASE_DIR, "data", "iphone_resale_dashboard_ready.csv")
-
-# LOAD DATA
 df = pd.read_csv(DATA_PATH)
 
 # PERBAIKAN MAP: pastikan kolom us_state berisi kode 2 huruf yang valid
 if "us_state" not in df.columns:
-    # Coba ekstrak dari kolom location (format: "City, ST, Country")
     df["us_state"] = df["location"].str.extract(r",\s*([A-Z]{2})\s*(?:,|$)")
 
 df["us_state"] = (
